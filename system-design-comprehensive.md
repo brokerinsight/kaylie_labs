@@ -1,0 +1,1048 @@
+# Comprehensive System Design Document
+## HTML Tools Store - No-Regrets Edition
+
+### Table of Contents
+1. [Executive Summary](#executive-summary)
+2. [System Architecture Overview](#system-architecture-overview)
+3. [Data Flow Diagrams](#data-flow-diagrams)
+4. [Entity Relationship Diagram](#entity-relationship-diagram)
+5. [Database Schema Design](#database-schema-design)
+6. [Technology Stack](#technology-stack)
+7. [API Design](#api-design)
+8. [Security & Privacy](#security--privacy)
+9. [Project Plan & Roadmap](#project-plan--roadmap)
+10. [Operational Guidelines](#operational-guidelines)
+
+---
+
+## Executive Summary
+
+This document provides a comprehensive system design for a modern HTML tools and UI components marketplace. The system is architected with a "no-regrets" philosophy, ensuring scalability, maintainability, and future-proofing while maintaining high performance and SEO optimization.
+
+**Key Features:**
+- Digital product marketplace for HTML/CSS/JS tools and components
+- Affiliate marketing system with commission tracking
+- Interactive demos and playgrounds
+- Content Management System for blogs and landing pages
+- Secure licensing and download management
+- Multi-payment gateway support (Stripe, PayPal, M-Pesa via PayHero)
+- Modern, responsive UI with accessibility features
+
+---
+
+## System Architecture Overview
+
+### Context Diagram (Level 0)
+
+```mermaid
+flowchart LR
+    User[Buyer / Visitor]
+    Affiliate[Affiliate]
+    Admin[Admin]
+    Pay[Payment Providers\n(Stripe, PayPal, PayHero/M‑Pesa)]
+    CF[(Cloudflare\nR2 + Images + CDN)]
+    SEO[Search Engines]
+    
+    subgraph Platform
+        FE[Next.js Frontend (SSG/ISR)]
+        API[Backend API (Auth, Catalog, Orders, CMS, Reviews, Affiliates)]
+        DB[(Postgres / Supabase)]
+        Auth[Auth Service\n(Supabase Auth Adapter)]
+        Queue[Jobs/Queue]
+        Email[Email Service]
+        Analytics[Server Events]
+    end
+    
+    User <--> FE
+    FE <--> API
+    API <--> DB
+    API --> Auth
+    API <--> CF
+    API <--> Pay
+    API --> Email
+    FE --> SEO
+    Affiliate --> FE
+    Admin <--> FE
+    API --> Queue
+    FE --> Analytics
+```
+
+### System Components
+
+#### Frontend Stack
+- **Framework**: Next.js with App Router for SEO and performance
+- **UI Library**: React with ShadCN UI components
+- **Styling**: Tailwind CSS with design tokens
+- **State Management**: React Query / TanStack Query
+- **Forms**: React Hook Form with Zod validation
+- **Animations**: Framer Motion
+- **Icons**: Lucide React
+
+#### Backend Stack
+- **Runtime**: Node.js with Express or Fastify
+- **Database**: Supabase (PostgreSQL) with real-time subscriptions
+- **Authentication**: Supabase Auth with JWT and refresh tokens
+- **File Storage**: Cloudflare R2 for packages and assets
+- **Image Optimization**: Cloudflare Images
+- **Queue System**: Background job processing
+
+#### Third-Party Integrations
+- **Payments**: Stripe, PayPal, PayHero (M-Pesa)
+- **Email**: Nodemailer or transactional email service
+- **CDN**: Cloudflare for global content delivery
+- **Analytics**: Server-side event tracking
+
+---
+
+## Data Flow Diagrams
+
+### Level 1 — Major Processes
+
+```mermaid
+flowchart LR
+    subgraph DataStores
+        D1[(Products)]
+        D2[(Orders)]
+        D3[(Users)]
+        D4[(Licenses & Downloads)]
+        D5[(Blog & Pages)]
+        D6[(Affiliates)]
+        D7[(Reviews)]
+    end
+    
+    V[Visitor/User]
+    A[Admin]
+    P1[Browse Catalog]
+    P2[Checkout & Payment]
+    P3[Download Fulfillment]
+    P4[Auth & Sessions]
+    P5[CMS: Blog & Pages]
+    P6[Affiliates: Tracking & Payouts]
+    P7[Reviews]
+    
+    V --> P1 --> D1
+    V --> P2 --> D2
+    P2 --> D4
+    V --> P3 --> D4
+    V --> P4 --> D3
+    A --> P5 --> D5
+    V --> P5 --> D5
+    V --> P6 --> D6
+    A --> P6 --> D6
+    V --> P7 --> D7
+    P7 --> D2
+```
+
+### Level 2 — Critical Path: Checkout & Payment Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant API as Backend API
+    participant Pay as Payment Provider
+    participant DB as Postgres
+    participant R2 as Cloudflare R2
+    
+    U->>FE: Click Buy Now (with optional affiliate cookie)
+    FE->>API: POST /orders (cart, prices, affiliate_id?)
+    API->>DB: Create Order (pending)
+    API->>Pay: Create Payment Intent/Invoice
+    Pay-->>FE: Redirect to hosted checkout / payment UI
+    U->>Pay: Complete payment
+    Pay-->>API: Webhook: payment_succeeded
+    API->>DB: Mark order paid; create License + Entitlements
+    API->>R2: Generate signed download URL (short TTL)
+    API->>U: Email receipt + downloads; FE shows Order Complete
+    U->>FE: Click Download
+    FE->>API: GET /orders/:id/downloads
+    API->>R2: Issue fresh signed URL
+    API-->>FE: 302 to R2 signed URL
+```
+
+### Level 2 — Authentication & Session Security
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant Auth as Supabase Auth Adapter
+    participant API as Backend
+    participant DB as Postgres
+    
+    U->>FE: Sign up / Sign in
+    FE->>Auth: Start flow (OAuth/Passkey/Magic link/TOTP)
+    Auth-->>FE: Session tokens
+    FE->>API: Exchange token for httpOnly session cookie
+    API->>DB: Upsert user, identity map, device/session record
+    U->>FE: Enable TOTP / register passkey
+    FE->>Auth: Register factor
+    Auth-->>FE: Factor confirmed
+    FE->>API: Update security level on session
+```
+
+### System-wide Dataflow Summary
+
+**Discovery → Conversion Path:**
+1. Visitor lands (SEO page / blog / product PDP)
+2. Frontend fetches product & demo assets
+3. Visitor interacts with demo (sandboxed iframe)
+4. Visitor adds to cart → checkout starts
+5. Order created (pending) → payment provider (checkout/intent)
+6. Webhook confirms payment → commerce service marks order paid
+7. License & entitlements created → download link minted (signed R2 URL)
+8. User downloads → analytics events recorded
+
+**Auth Flows:**
+- Sign up/in (OAuth/magic link/passkey) handled by Auth Service
+- Session cookie issued → identity mapped to users and identities
+- Session recorded in sessions table
+- Device & security changes update sessions or device table
+- Server enforces RBAC by reading role_map and ABAC attributes
+
+**CMS Flows:**
+- Editor creates draft post/page → media uploaded to Cloudflare Images
+- Assets entry created → publish triggers ISR revalidation and CDN cache purge
+- Sitemap updated → programmatic landing pages regenerated (if any)
+- Inbound traffic served from edge cache
+
+**Affiliate Flows:**
+- Click captured via redirect endpoint → affiliate_clicks row + cookie set
+- Order creation reads cookie and assigns affiliate_id to orders
+- On payment success affiliate_conversions created
+- Admin triggers payout cadence; payouts stored in payouts table
+
+---
+
+## Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    USER ||--o{ SESSION : has
+    USER ||--o{ ROLEMAP : has
+    USER ||--o{ REVIEW : writes
+    USER ||--o{ ORDER : places
+    USER ||--o{ LICENSE : owns
+    USER ||--o{ AFFILIATE : may_be
+    USER ||--o{ BLOGPOST : authors
+    
+    AFFILIATE ||--o{ AFFILIATE_CLICK : receives
+    AFFILIATE ||--o{ AFFILIATE_CONVERSION : earns
+    AFFILIATE ||--o{ PAYOUT : paid
+    
+    PRODUCT ||--o{ PRODUCT_VERSION : has
+    PRODUCT ||--o{ PRODUCT_TAG : tagged
+    PRODUCT ||--o{ REVIEW : reviewed
+    PRODUCT ||--o{ BUNDLE_ITEM : included_in
+    PRODUCT ||--o{ ASSET : uses
+    
+    TAG ||--o{ PRODUCT_TAG : joins
+    BUNDLE ||--o{ BUNDLE_ITEM : contains
+    
+    ORDER ||--o{ ORDER_ITEM : contains
+    ORDER ||--o{ AFFILIATE_CONVERSION : attributed
+    ORDER_ITEM }o--|| PRODUCT_VERSION : references
+    
+    LICENSE }o--|| PRODUCT_VERSION : entitles
+    DOWNLOAD_LINK }o--|| LICENSE : for
+    DOWNLOAD_LINK }o--|| PRODUCT_VERSION : of
+    
+    BLOGPOST ||--o{ POST_TAG : tagged
+    TAG ||--o{ POST_TAG : joins
+    
+    PAGE ||--o{ ASSET : contains
+    BLOGPOST ||--o{ ASSET : contains
+    
+    REVIEW }o--|| ORDER_ITEM : verified_by
+```
+
+### Primary Entity Relationship Highlights
+
+- **users → orders** is 1-to-many; **orders → order_items** 1-to-many; **order_items → product_versions** many-to-1
+- **product_versions** are the canonical deliverable artifact (zip in R2); **licenses** point to product_versions (entitlement)
+- **download_links** point to both license and product_version
+- **products** aggregate product_versions, assets, tags, and reviews (ratings cached on products)
+- **blog_posts** and **pages** reuse assets for media; blog_posts connect to products via internal shortcodes/CTAs
+- **affiliates** tie to users (one-to-one) and to affiliate_clicks/affiliate_conversions
+- Commissions derived from orders at payment_succeeded event
+
+---
+
+## Database Schema Design
+
+### Conventions
+- **Primary Keys**: UUID everywhere
+- **Timestamps**: `created_at`, `updated_at` (timestamptz defaults)
+- **Soft Delete**: `deleted_at` where noted
+- **Foreign Keys**: Enforced with selective ON DELETE semantics
+- **Indexes**: Important indexes noted with `-- idx`
+
+### Schema Guardrails
+- Use UUID PKs everywhere and avoid natural keys as primary
+- Prefer narrow, focused tables over huge JSON blobs (except body_rich for CMS)
+- Add version/schema_version on rich content for safe migrations
+- Write migration scripts to backfill license and download_link for historical orders
+- Enforce foreign keys and selective ON DELETE semantics (usually RESTRICT for orders/licenses; CASCADE only where safe)
+
+### Core Tables
+
+#### 1. Users & Authentication
+
+```sql
+-- Users table
+users(
+    id UUID PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    display_name TEXT,
+    is_email_verified BOOLEAN DEFAULT FALSE,
+    preferred_locale TEXT NULL,
+    avatar_image_id UUID,
+    status ENUM('active','blocked') DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    metadata JSONB NULL
+);
+-- idx(email)
+
+-- Identity providers mapping
+identities(
+    id UUID PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    provider ENUM('supabase','google','github','passkey'),
+    provider_subject TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(user_id, provider)
+);
+
+-- Session management
+sessions(
+    id UUID PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    session_token_hash TEXT NOT NULL,
+    device_info JSONB NULL,
+    ip_hash TEXT,
+    mfa_level ENUM('none','totp','passkey') DEFAULT 'none',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    last_seen_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
+    revoked_at TIMESTAMPTZ NULL
+);
+-- idx(user_id), idx(revoked_at)
+
+-- Role-based access control
+role_map(
+    user_id UUID REFERENCES users(id),
+    role ENUM('user','affiliate','admin'),
+    PRIMARY KEY(user_id, role)
+);
+```
+
+#### 2. Product Catalog
+
+```sql
+-- Product categories
+categories(
+    id UUID PRIMARY KEY,
+    slug TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    parent_id UUID NULL REFERENCES categories(id),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Products
+products(
+    id UUID PRIMARY KEY,
+    slug TEXT UNIQUE NOT NULL,
+    title TEXT NOT NULL,
+    subtitle TEXT,
+    description_md TEXT,
+    price_cents INT NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'USD',
+    category_id UUID REFERENCES categories(id),
+    cover_image_id UUID,
+    is_active BOOLEAN DEFAULT TRUE,
+    rating_cache NUMERIC DEFAULT 0.0,
+    rating_count INT DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+-- idx(slug), full-text index on (title, subtitle, description_md)
+
+-- Product versions (deliverable artifacts)
+product_versions(
+    id UUID PRIMARY KEY,
+    product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+    version_semver TEXT NOT NULL,
+    changelog_md TEXT,
+    r2_key_zip TEXT NOT NULL, -- products/{product_id}/{version}/package.zip
+    license_template_id UUID,
+    is_latest BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(product_id, version_semver)
+);
+
+-- Tags for categorization
+tags(
+    id UUID PRIMARY KEY,
+    slug TEXT UNIQUE NOT NULL,
+    label TEXT NOT NULL
+);
+
+-- Product-tag relationships
+product_tags(
+    product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+    tag_id UUID REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY(product_id, tag_id)
+);
+
+-- Asset management
+assets(
+    id UUID PRIMARY KEY,
+    owner_type ENUM('product','blogpost','page','user_avatar'),
+    owner_id UUID,
+    r2_key TEXT,
+    cf_image_id TEXT, -- Cloudflare image ID
+    url TEXT, -- cached public URL
+    alt_text TEXT,
+    mime_type TEXT,
+    file_size INT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+-- idx(owner_type, owner_id)
+```
+
+#### 3. Orders & Commerce
+
+```sql
+-- Orders
+orders(
+    id UUID PRIMARY KEY,
+    user_id UUID NULL REFERENCES users(id),
+    status ENUM('pending','paid','failed','refunded','cancelled') NOT NULL,
+    subtotal_cents INT NOT NULL,
+    discount_cents INT DEFAULT 0,
+    tax_cents INT DEFAULT 0,
+    total_cents INT NOT NULL,
+    currency TEXT NOT NULL,
+    payment_provider ENUM('stripe','paypal','payhero'),
+    provider_ref TEXT,
+    affiliate_id UUID NULL REFERENCES affiliates(id),
+    metadata JSONB NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    paid_at TIMESTAMPTZ NULL
+);
+-- idx(user_id, created_at), idx(status)
+
+-- Order line items
+order_items(
+    id UUID PRIMARY KEY,
+    order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
+    product_id UUID REFERENCES products(id),
+    product_version_id UUID REFERENCES product_versions(id),
+    item_type ENUM('product','bundle'),
+    unit_price_cents INT,
+    quantity INT DEFAULT 1,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Payment tracking
+payments(
+    id UUID PRIMARY KEY,
+    order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
+    provider ENUM('stripe','paypal','payhero') NOT NULL,
+    provider_payment_id TEXT,
+    amount_cents INT,
+    currency TEXT,
+    status ENUM('pending','succeeded','failed'),
+    raw_payload JSONB, -- webhook payload for reconciliation
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(provider, provider_payment_id)
+);
+```
+
+#### 4. Licensing & Downloads
+
+```sql
+-- User licenses (entitlements)
+licenses(
+    id UUID PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    product_version_id UUID REFERENCES product_versions(id) ON DELETE CASCADE,
+    license_key TEXT UNIQUE,
+    license_type ENUM('personal','team','commercial'),
+    is_active BOOLEAN DEFAULT TRUE,
+    issued_at TIMESTAMPTZ DEFAULT now(),
+    revoked_at TIMESTAMPTZ NULL
+);
+-- idx(user_id)
+
+-- Secure download links
+download_links(
+    id UUID PRIMARY KEY,
+    license_id UUID REFERENCES licenses(id) ON DELETE CASCADE,
+    product_version_id UUID REFERENCES product_versions(id),
+    token TEXT UNIQUE NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    max_uses INT DEFAULT 5,
+    uses_count INT DEFAULT 0,
+    last_used_at TIMESTAMPTZ NULL,
+    ip_hash TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+-- idx(license_id, expires_at), idx(token)
+```
+
+#### 5. Reviews & Ratings
+
+```sql
+-- Product reviews
+reviews(
+    id UUID PRIMARY KEY,
+    user_id UUID REFERENCES users(id),
+    product_id UUID REFERENCES products(id),
+    rating INT CHECK(rating BETWEEN 1 AND 5),
+    body_md TEXT,
+    status ENUM('pending','approved','rejected') DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+-- idx(product_id, status)
+
+-- Purchase verification for reviews
+review_proofs(
+    id UUID PRIMARY KEY,
+    review_id UUID REFERENCES reviews(id) ON DELETE CASCADE,
+    order_item_id UUID REFERENCES order_items(id)
+);
+```
+
+#### 6. Affiliate System
+
+```sql
+-- Affiliate accounts
+affiliates(
+    id UUID PRIMARY KEY,
+    user_id UUID REFERENCES users(id) UNIQUE,
+    code TEXT UNIQUE NOT NULL,
+    status ENUM('pending','approved','blocked'),
+    commission_bps INT DEFAULT 1000, -- 1000 = 10.00%
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Click tracking
+affiliate_clicks(
+    id UUID PRIMARY KEY,
+    affiliate_id UUID REFERENCES affiliates(id),
+    click_ts TIMESTAMPTZ DEFAULT now(),
+    landing_url TEXT,
+    ip_hash TEXT,
+    user_agent TEXT,
+    utm_params JSONB NULL
+);
+-- idx(affiliate_id, click_ts)
+
+-- Conversion tracking
+affiliate_conversions(
+    id UUID PRIMARY KEY,
+    affiliate_id UUID REFERENCES affiliates(id),
+    order_id UUID REFERENCES orders(id) UNIQUE,
+    commission_cents INT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Payout management
+payouts(
+    id UUID PRIMARY KEY,
+    affiliate_id UUID REFERENCES affiliates(id),
+    amount_cents INT,
+    currency TEXT,
+    status ENUM('pending','paid','failed'),
+    requested_at TIMESTAMPTZ DEFAULT now(),
+    paid_at TIMESTAMPTZ NULL,
+    notes TEXT
+);
+-- idx(affiliate_id)
+```
+
+#### 7. Content Management System
+
+```sql
+-- Blog posts
+blog_posts(
+    id UUID PRIMARY KEY,
+    slug TEXT UNIQUE NOT NULL,
+    title TEXT NOT NULL,
+    excerpt TEXT,
+    body_rich JSONB NOT NULL, -- portable rich text schema
+    author_user_id UUID REFERENCES users(id),
+    status ENUM('draft','published') DEFAULT 'draft',
+    published_at TIMESTAMPTZ NULL,
+    og_image_id UUID REFERENCES assets(id),
+    seo_title TEXT,
+    seo_description TEXT,
+    canonical_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Blog post tags
+post_tags(
+    post_id UUID REFERENCES blog_posts(id) ON DELETE CASCADE,
+    tag_id UUID REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY(post_id, tag_id)
+);
+
+-- Static pages
+pages(
+    id UUID PRIMARY KEY,
+    slug TEXT UNIQUE NOT NULL,
+    title TEXT NOT NULL,
+    body_rich JSONB NOT NULL,
+    status ENUM('draft','published') DEFAULT 'draft',
+    published_at TIMESTAMPTZ NULL,
+    og_image_id UUID REFERENCES assets(id),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### 8. System Administration
+
+```sql
+-- Feature flags
+feature_flags(
+    key TEXT PRIMARY KEY,
+    value JSONB,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- URL redirects
+redirects(
+    id UUID PRIMARY KEY,
+    from_path TEXT UNIQUE,
+    to_url TEXT,
+    status_code INT DEFAULT 301,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Audit logging
+audit_log(
+    id UUID PRIMARY KEY,
+    actor_user_id UUID REFERENCES users(id),
+    action TEXT,
+    target_type TEXT,
+    target_id UUID,
+    meta JSONB,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+---
+
+## Technology Stack
+
+### Frontend Frameworks & Design System
+
+#### Tech Stack (Frontend)
+- **Framework**: Next.js (latest stable) — SSG/ISR for SEO, edge rendering for personalization
+- **UI Library**: React + shadcn/ui for accessible building blocks, augmented with bespoke component library
+- **Styling**: Tailwind CSS (utility-first) + design tokens (CSS variables) for theming
+- **State & Data**: React Query / TanStack Query for data fetching + SWR for lightweight caches
+- **Forms & Validation**: React Hook Form + Zod for validation
+- **Animations**: Framer Motion for subtle, modern motion
+- **Icons**: lucide-react for crisp, modern icons
+
+#### Component & Design System Strategy
+- **Atomic Design**: atoms (button, input), molecules (search bar, product card), organisms (product grid, navbar), templates (PDP layout), pages
+- **Component Library**: private package published as npm package consumed by Next.js app
+- **Design Tokens**: color palette, spacing, radii, font scale, shadow tokens in JSON + CSS variables
+- **Theming**: light/dark by default; theme keys driven by CSS variables and Tailwind config
+- **Accessibility**: components include aria attributes, keyboard focus states, high contrast modes
+- **Responsive**: mobile-first breakpoint system, fluid typography (clamp)
+- **Documentation**: Storybook or custom docs site showcasing components
+
+#### Landing & Conversion UI Patterns
+- **Hero**: clear value proposition, single primary CTA (Buy / Try Demo), trust badges
+- **Product Card**: screenshot (responsive), 1-line benefit, price, rating, small CTA
+- **PDP**: large demo iframe, features list, use cases, license badge, version dropdown, buy widget
+- **Checkout**: minimal form fields, express pay buttons, progress indicator, clear refund policy
+- **Account**: downloads grid with thumbnails, license keys, re-download button, version changelog
+- **Blog**: content with inline CTAs, table of contents, code blocks with copy buttons
+
+#### Visual Language & Microcopy
+- Neutral, professional colors with bright accent for CTAs
+- Friction-reducing microcopy: "Download instantly", "No setup required", "Works offline"
+- Example use cases and one-line snippets showing quick integration
+- High-quality screenshots and short GIF demos (3–6s)
+
+#### Performance & SEO Considerations
+- Pre-render product and key landing pages (SSG) with incremental revalidation
+- Use `<link rel=preload>` for hero images and critical fonts
+- Avoid heavy client JS for landing pages — hydrate demos only when visible
+- Optimize images via Cloudflare Images (AVIF/WebP variants)
+- Implement structured data for Product & Article on server render
+
+### Backend Architecture
+
+#### Framework & Runtime
+- **Node.js** with Express or Fastify for lightweight, fast API services
+- **Supabase** for PostgreSQL database with real-time subscriptions
+- **Supabase Auth** for authentication with JWT and OAuth providers
+- **WebSockets** for real-time updates where needed
+
+#### Service Boundaries
+- **Auth Service**: abstracts Supabase/Auth0, handles sessions, MFA, passkeys, device registry
+- **Catalog Service**: products, versions, tags, search functionality
+- **Commerce Service**: cart, orders, taxes, payments, webhooks, entitlements/licensing
+- **Download Service**: R2 signed URLs, rate limiting, link watermarking
+- **CMS Service**: posts, pages, media assets, publishing cache invalidation
+- **Review Service**: CRUD + moderation + aggregation cache
+- **Affiliate Service**: code issuance, click tracking, attribution, payouts
+- **Admin/Reporting Service**: KPIs, exports, audit log
+
+### Storage & CDN
+- **Cloudflare R2**: primary file storage for product packages and assets
+- **Cloudflare Images**: optimized image delivery with automatic format conversion
+- **Cloudflare CDN**: global content delivery and caching
+
+### Payment Integration
+- **Stripe**: primary payment processor for global markets
+- **PayPal**: alternative payment method
+- **PayHero**: M-Pesa integration for Kenya market
+- **Webhook Security**: signature verification and idempotency handling
+
+---
+
+## API Design
+
+### REST API Endpoints
+
+#### Authentication
+```
+POST /auth/session     - Exchange Supabase token → httpOnly cookie
+POST /auth/logout      - Revoke session
+GET  /me              - Profile + roles + security level
+```
+
+#### Catalog
+```
+GET /products                    - List products with filtering
+GET /products/:slug              - Get product details
+GET /products/:slug/versions     - List product versions
+GET /products/:id/reviews        - Get approved reviews
+```
+
+#### Cart & Orders
+```
+POST /orders                     - Create pending order
+POST /orders/:id/pay            - Start payment process
+GET  /orders/:id                - Get order status/details
+GET  /orders/:id/downloads      - List entitled downloads with signed links
+```
+
+#### Downloads
+```
+POST /downloads                  - Mint signed URL for license + version
+GET  /downloads/:token          - Validate and redirect to R2
+```
+
+#### Reviews
+```
+POST /products/:id/reviews      - Create review (requires verified purchase)
+PATCH /reviews/:id              - Admin moderate review
+```
+
+#### Affiliates
+```
+POST /affiliates/apply           - Apply for affiliate program
+GET  /affiliates/me             - Dashboard metrics
+GET  /affiliates/:code/redirect - Click tracking + redirect to store
+```
+
+#### CMS
+```
+GET /blog                       - List blog posts
+GET /blog/:slug                 - Get blog post
+GET /pages/:slug                - Get static page
+```
+
+#### Admin Endpoints
+```
+GET /admin/metrics              - Dashboard metrics
+GET /admin/sales                - Sales reporting
+GET /admin/top-products         - Top selling products
+```
+
+#### Payment Webhooks
+```
+POST /webhooks/stripe           - Stripe webhook handler
+POST /webhooks/paypal           - PayPal webhook handler
+POST /webhooks/payhero          - PayHero webhook handler
+```
+
+### API Conventions
+- **Versioning**: Via header `Accept: application/vnd.app.v1+json` or `/v1/..`
+- **Idempotency**: Keys on mutating endpoints to prevent duplicate operations
+- **Error Format**: RFC7807 compliant error responses
+- **Authentication**: Bearer tokens for API access, httpOnly cookies for web sessions
+- **Rate Limiting**: Per-endpoint limits with appropriate HTTP status codes
+
+---
+
+## Security & Privacy
+
+### Download Security & R2 Object Design
+
+#### R2 Key Structure
+```
+products/{product_id}/{version}/package.zip
+licenses/{license_id}/license.txt
+```
+
+#### Signed URL Security
+- **Short TTL**: ≤ 5 minutes for download URLs
+- **Rate Limiting**: 5 downloads per license token by default
+- **IP Tracking**: Hashed IP addresses for abuse detection
+- **Watermarking**: License information embedded in downloaded packages
+
+#### License Watermarking
+Embed JSON metadata in LICENSE.txt file within zip packages:
+```json
+{
+  "license_key": "unique-license-key",
+  "purchaser_name": "Customer Name",
+  "purchaser_email": "customer@example.com",
+  "order_id": "order-uuid",
+  "issued_at": "2024-01-15T10:30:00Z",
+  "license_type": "personal"
+}
+```
+
+### Authentication & Session Security
+- **Multi-Factor Authentication**: TOTP and passkey support
+- **Session Management**: httpOnly cookies with secure flags
+- **Device Tracking**: Register and manage trusted devices
+- **Token Rotation**: Automatic refresh token rotation
+- **Brute Force Protection**: Rate limiting on auth endpoints
+
+### Content Security Policy
+```
+default-src 'self';
+script-src 'self' 'unsafe-inline' https://js.stripe.com;
+style-src 'self' 'unsafe-inline';
+img-src 'self' data: https:;
+connect-src 'self' https://api.stripe.com;
+frame-src 'self' https://js.stripe.com;
+frame-ancestors 'none';
+```
+
+### Privacy & Compliance
+- **Data Minimization**: Store only necessary user data
+- **IP Hashing**: Store hashed IP addresses for privacy
+- **GDPR Compliance**: Right to access, modify, and delete user data
+- **Cookie Consent**: Granular consent for analytics and marketing cookies
+- **Data Retention**: 90-day retention for logs, legal retention for orders
+
+---
+
+## Project Plan & Roadmap
+
+### Delivery Strategy
+- **Methodology**: Iterative development with 2-week sprints
+- **Release Cadence**: Continuous staging deployment, weekly production releases
+- **Branch Strategy**: `main` (prod), `develop` (staging), feature branches `feat/*`
+- **Environments**: Development (local), Staging, Production with isolated databases
+
+### Milestones & Build Order
+
+#### M0 – Foundations (Weeks 1-2)
+**Exit Criteria**: Hello-world deploy to staging; login/logout works; CI pipeline green
+- [ ] Repository setup with issue templates and commit hooks
+- [ ] Supabase projects and PostgreSQL schemas applied
+- [ ] Cloudflare R2/Images buckets and IAM configuration
+- [ ] Auth adapter skeleton with session cookies
+- [ ] CI/CD pipeline with automated testing
+
+#### M1 – Catalog & CMS Backbone (Weeks 3-4)  
+**Exit Criteria**: Public catalog and blog render from DB; admin can create products and blog posts
+- [ ] Products, versions, tags endpoints with admin CRUD
+- [ ] CMS: posts/pages CRUD with media upload via Cloudflare Images
+- [ ] Next.js SSG/ISR for products and blog posts
+- [ ] Sitemap and robots.txt generation
+
+#### M2 – Checkout & Payments (Weeks 5-6)
+**Exit Criteria**: Full happy-path purchase on staging; webhook retries proven; test orders visible in admin
+- [ ] Orders API with Stripe/PayPal/PayHero adapters
+- [ ] Webhook handlers with reconciliation and outbox pattern
+- [ ] Cart/Buy-Now frontend with receipt emails
+
+#### M3 – Licensing & Downloads (Week 7)
+**Exit Criteria**: Buyer downloads package from account; links expire; audit log captures events
+- [ ] License issuance and watermarking system
+- [ ] Signed R2 URL generation with rate limits
+- [ ] Account vault with download history
+
+#### M4 – Reviews & Affiliates (Week 8)
+**Exit Criteria**: Reviews show on PDP after approval; affiliate attribution end-to-end proven
+- [ ] Verified reviews with moderation workflow
+- [ ] Affiliate click tracking and conversion attribution
+- [ ] Dashboard and payout administration
+
+#### M5 – Demos & SEO Hardening (Week 9)
+**Exit Criteria**: Core Web Vitals in green; demo sandbox secure with CSP/iframe sandbox
+- [ ] Live iframe demos and playgrounds
+- [ ] Core Web Vitals optimization
+- [ ] Structured data implementation
+
+#### M6 – Analytics & Reporting (Week 10)
+**Exit Criteria**: Dashboards show last 30 days sales/funnel; UTM tracked to orders
+- [ ] Server-side event tracking
+- [ ] Sales and funnel dashboards
+- [ ] Affiliate reporting interface
+
+#### M7 – Launch Readiness (Week 11)
+**Exit Criteria**: Full release checklist passes; production traffic allowed
+- [ ] Legal pages and pricing finalization
+- [ ] Support workflows and documentation
+- [ ] Backup and monitoring systems
+- [ ] Production runbooks
+
+#### M8 – Post-Launch Iterations (Week 12+)
+**Exit Criteria**: First A/B test concluded; SEO content calendar running
+- [ ] A/B testing framework for pricing and landing pages
+- [ ] Bundle and discount system
+- [ ] Content velocity optimization
+
+### Work Breakdown Structure
+
+| Week | Focus Area | Key Deliverables |
+|------|------------|------------------|
+| 1-2  | Foundation | Repo setup, auth skeleton, CI/CD |
+| 3-4  | Core Platform | Catalog API, CMS, basic frontend |
+| 5-6  | Commerce | Payment integration, order processing |
+| 7    | Fulfillment | License system, secure downloads |
+| 8    | Engagement | Reviews, affiliate system |
+| 9    | Performance | Demos, SEO optimization |
+| 10   | Analytics | Reporting dashboards |
+| 11   | Launch Prep | Final testing, documentation |
+| 12+  | Growth | A/B testing, feature expansion |
+
+### Risk Register & Mitigation
+
+| Risk | Impact | Mitigation |
+|------|---------|------------|
+| Payments desync | High | Outbox pattern + periodic reconciliation job |
+| Download abuse | Medium | Strict TTL + per-license rate-limit + watermarking |
+| SEO volatility | Medium | Evergreen content + internal links + technical SEO checks |
+| Vendor lock-in | Low | Adapters for auth/payments; export scripts for DB/R2 |
+
+---
+
+## Operational Guidelines
+
+### Quality Assurance Strategy
+
+#### Test Strategy
+- **Unit Tests**: Service logic, validators, formatters
+- **Integration Tests**: API routes with test database
+- **E2E Tests**: Critical flows (signup, purchase, download) with seeded fixtures
+- **Security Tests**: Authorization, CSRF, SSRF, sandbox security
+- **Load Tests**: Checkout path performance at 95th percentile targets
+- **Accessibility Tests**: axe checks and keyboard-only navigation
+
+#### Browser Support Matrix
+- Latest Chrome, Edge, Firefox
+- iOS Safari (latest 2 versions)
+- Android Chrome (latest 2 versions)
+
+### CI/CD Pipeline
+
+#### Pipeline Stages
+1. **Install Dependencies** → **TypeScript Check** → **Linting**
+2. **Unit Tests** → **Integration Tests** → **Build**
+3. **E2E Tests (Staging)** → **Deploy** → **Smoke Tests**
+
+#### Quality Gates
+- **Coverage Threshold**: 70% minimum, rising trend required
+- **Bundle Size Budget**: Monitored with alerts on significant increases
+- **Lighthouse CI**: Core Web Vitals must be in green zone
+- **Security Scanning**: Dependency vulnerabilities checked
+
+### Monitoring & Observability
+
+#### Key Metrics
+- **Request Metrics**: Latency, error rate, throughput
+- **Business Metrics**: Conversion rate, affiliate attribution, download success rate
+- **Infrastructure Metrics**: Database performance, R2 usage, webhook success rate
+
+#### Alerting Strategy
+- **P0 Alerts**: Payment webhook failures, authentication system down
+- **P1 Alerts**: Download spike anomalies, high error rates
+- **P2 Alerts**: Performance degradation, unusual traffic patterns
+
+#### Logging Standards
+- **Request IDs**: Traced through all services
+- **User Context**: Hashed user IDs for privacy
+- **Webhook Payloads**: Sanitized snapshots for debugging
+- **Audit Trail**: All admin actions and sensitive operations
+
+### Data Operations
+
+#### Backup Strategy
+- **Database**: Daily automated backups with point-in-time recovery
+- **Files**: R2 lifecycle rules for cost optimization
+- **Disaster Recovery**: Quarterly restore drills
+
+#### Data Retention
+- **Logs**: 90-day retention for operational logs
+- **Analytics Events**: Aggregated monthly, raw data purged after 90 days
+- **Legal Data**: Orders and licenses retained per regulatory requirements
+- **User Data**: Minimal collection with DSR (export/delete) endpoints
+
+### Content & SEO Operations
+
+#### Content Calendar
+- **Publishing Frequency**: 2 posts per week during launch phase
+- **Content Clusters**: CSV/Excel utilities, text processing tools, UI components
+- **Programmatic Pages**: Template-based landing pages for specific use cases
+
+#### SEO Strategy
+- **Technical SEO**: Structured data, meta tags, canonical URLs
+- **Internal Linking**: Breadcrumbs, related content, topic clusters
+- **Performance**: Core Web Vitals optimization, image optimization
+- **Tracking**: UTM conventions, server-side events, conversion attribution
+
+---
+
+## Appendices
+
+### A. Database Migration Strategy
+- Forward-only migrations with backward compatibility
+- Automated rollback scripts for critical changes
+- Schema versioning for safe deployment
+- Migration testing in staging environment
+
+### B. Feature Flag Framework
+- Owner assignment and documentation
+- Kill switches for rapid rollback
+- Telemetry and A/B testing integration
+- Cleanup procedures for expired flags
+
+### C. Security Incident Response
+- Escalation procedures and contact information
+- Forensic data collection guidelines
+- Communication templates for user notification
+- Post-incident review and improvement process
+
+### D. Performance Benchmarks
+- Target response times per endpoint
+- Core Web Vitals thresholds
+- Database query performance standards
+- Third-party service SLA requirements
+
+---
+
+*This document serves as the comprehensive technical specification for the HTML Tools Store system. All diagrams, schemas, and architectural decisions documented here should be referenced throughout the development process to ensure consistency and completeness.*

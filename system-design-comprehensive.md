@@ -40,7 +40,7 @@ flowchart LR
     User[Buyer / Visitor]
     Affiliate[Affiliate]
     Admin[Admin]
-    Pay[Payment Providers<br/>(Stripe, PayPal, PayHero/M-Pesa)]
+    Pay["Payment Providers\n(Stripe, PayPal, PayHero/M-Pesa)"]
     CF[(Cloudflare<br/>R2 + Images + CDN)]
     SEO[Search Engines]
     
@@ -261,7 +261,7 @@ erDiagram
     AFFILIATES ||--o{ AFFILIATE_CONVERSIONS : converts
     
     COMMISSIONS }o--|| ORDERS : from
-    COMMISSIONS }o--|| AFFILIATES : to
+    COMMISSIONS }o--|| AFFILIATES : "to"
     
     BLOG_POSTS }o--|| USERS : created_by
     CMS_PAGES }o--|| USERS : created_by

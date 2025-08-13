@@ -10,8 +10,9 @@
 6. [Technology Stack](#technology-stack)
 7. [API Design](#api-design)
 8. [Security & Privacy](#security--privacy)
-9. [Project Plan & Roadmap](#project-plan--roadmap)
+9. [Phase 3 — Project Plan, Roadmap & Delivery Playbook](#phase-3--project-plan-roadmap--delivery-playbook)
 10. [Operational Guidelines](#operational-guidelines)
+11. [Appendices](#appendices)
 
 ---
 
@@ -45,7 +46,8 @@ flowchart LR
     
     subgraph Platform
         FE[Next.js Frontend (SSG/ISR)]
-        API[Backend API (Auth, Catalog, Orders, CMS, Reviews, Affiliates)]
+        API[Backend API (Auth, Catalog, Orders, Reviews, Affiliates)]
+        CMS[CMS Module\n(Blog & Static Pages)]
         DB[(Postgres / Supabase)]
         Auth[Auth Service\n(Supabase Auth Adapter)]
         Queue[Jobs/Queue]
@@ -55,14 +57,18 @@ flowchart LR
     
     User <--> FE
     FE <--> API
+    FE <--> CMS
     API <--> DB
+    CMS <--> DB
     API --> Auth
     API <--> CF
+    CMS <--> CF
     API <--> Pay
     API --> Email
     FE --> SEO
     Affiliate --> FE
     Admin <--> FE
+    Admin <--> CMS
     API --> Queue
     FE --> Analytics
 ```
@@ -209,8 +215,32 @@ sequenceDiagram
 **Affiliate Flows:**
 - Click captured via redirect endpoint → affiliate_clicks row + cookie set
 - Order creation reads cookie and assigns affiliate_id to orders
-- On payment success affiliate_conversions created
+- On payment success commissions created
 - Admin triggers payout cadence; payouts stored in payouts table
+
+**Review Verification:**
+- Review posted → review_proofs links to order_item to mark as verified
+- Moderation queue enforced; approved reviews surface on PDP and affect rating_cache and rating_count on products
+
+**Background Tasks:**
+- Email sending, webhook reconciliation, affiliate payout generation, analytics aggregation, and sitemap regeneration run on worker queue (outbox pattern) to decouple synchronous requests
+
+### Primary Entity Relationship Highlights (Detailed)
+
+- **users → orders** is 1-to-many; **orders → order_items** 1-to-many; **order_items → product_versions** many-to-1
+- **product_versions** are the canonical deliverable artifact (zip in R2); **licenses** point to product_versions (entitlement), **download_links** point to both license and product_version
+- **products** aggregate product_versions, assets, tags, and reviews (ratings cached on products)
+- **blog_posts** and **pages** reuse assets for media; blog_posts connect to products via internal shortcodes/CTAs for conversion tracking
+- **affiliates** tie to users (one-to-one) and to affiliate_clicks/commissions. Commissions derived from orders at payment_succeeded event
+- **bundles** aggregate multiple products with special pricing; order_items can reference either product_versions or bundles
+
+### Schema Guardrails (No-Regrets)
+
+- Use UUID PKs everywhere and avoid natural keys as primary
+- Prefer narrow, focused tables over huge JSON blobs (except body_rich for CMS where JSON is intentional)
+- Add version/schema_version on rich content for safe migrations
+- Write migration scripts to backfill license and download_link for historical orders during schema changes
+- Enforce foreign keys and selective ON DELETE semantics (usually RESTRICT for orders/licenses; CASCADE only where safe, e.g., product_tags entries when product deleted)
 
 ---
 
@@ -227,7 +257,7 @@ erDiagram
     USER ||--o{ BLOGPOST : authors
     
     AFFILIATE ||--o{ AFFILIATE_CLICK : receives
-    AFFILIATE ||--o{ AFFILIATE_CONVERSION : earns
+    AFFILIATE ||--o{ COMMISSION : earns
     AFFILIATE ||--o{ PAYOUT : paid
     
     PRODUCT ||--o{ PRODUCT_VERSION : has
@@ -236,19 +266,25 @@ erDiagram
     PRODUCT ||--o{ BUNDLE_ITEM : included_in
     PRODUCT ||--o{ ASSET : uses
     
-    TAG ||--o{ PRODUCT_TAG : joins
     BUNDLE ||--o{ BUNDLE_ITEM : contains
+    BUNDLE ||--o{ ORDER_ITEM : sold_in
+    
+    TAG ||--o{ PRODUCT_TAG : joins
+    TAG ||--o{ POST_TAG : joins
     
     ORDER ||--o{ ORDER_ITEM : contains
-    ORDER ||--o{ AFFILIATE_CONVERSION : attributed
+    ORDER ||--o{ COMMISSION : attributed
     ORDER_ITEM }o--|| PRODUCT_VERSION : references
+    ORDER_ITEM }o--|| BUNDLE : may_reference
     
     LICENSE }o--|| PRODUCT_VERSION : entitles
     DOWNLOAD_LINK }o--|| LICENSE : for
     DOWNLOAD_LINK }o--|| PRODUCT_VERSION : of
     
+    COMMISSION }o--|| AFFILIATE : belongs_to
+    COMMISSION }o--|| ORDER : derived_from
+    
     BLOGPOST ||--o{ POST_TAG : tagged
-    TAG ||--o{ POST_TAG : joins
     
     PAGE ||--o{ ASSET : contains
     BLOGPOST ||--o{ ASSET : contains
@@ -340,16 +376,19 @@ role_map(
 #### 2. Product Catalog
 
 ```sql
--- Product categories
+-- Product categories (hierarchical)
 categories(
     id UUID PRIMARY KEY,
     slug TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
     parent_id UUID NULL REFERENCES categories(id),
+    sort_order INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
+-- idx(parent_id, sort_order), idx(slug)
 
 -- Products
 products(
@@ -362,13 +401,14 @@ products(
     currency TEXT NOT NULL DEFAULT 'USD',
     category_id UUID REFERENCES categories(id),
     cover_image_id UUID,
+    created_by UUID REFERENCES users(id),
     is_active BOOLEAN DEFAULT TRUE,
     rating_cache NUMERIC DEFAULT 0.0,
     rating_count INT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
--- idx(slug), full-text index on (title, subtitle, description_md)
+-- idx(slug), idx(created_by), full-text index on (title, subtitle, description_md)
 
 -- Product versions (deliverable artifacts)
 product_versions(
@@ -395,6 +435,26 @@ product_tags(
     product_id UUID REFERENCES products(id) ON DELETE CASCADE,
     tag_id UUID REFERENCES tags(id) ON DELETE CASCADE,
     PRIMARY KEY(product_id, tag_id)
+);
+
+-- Product bundles
+bundles(
+    id UUID PRIMARY KEY,
+    slug TEXT UNIQUE NOT NULL,
+    title TEXT NOT NULL,
+    description_md TEXT,
+    price_cents INT NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'USD',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Bundle-product relationships
+bundle_items(
+    bundle_id UUID REFERENCES bundles(id) ON DELETE CASCADE,
+    product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+    PRIMARY KEY(bundle_id, product_id)
 );
 
 -- Asset management
@@ -544,12 +604,13 @@ affiliate_clicks(
 );
 -- idx(affiliate_id, click_ts)
 
--- Conversion tracking
-affiliate_conversions(
+-- Commission tracking
+commissions(
     id UUID PRIMARY KEY,
     affiliate_id UUID REFERENCES affiliates(id),
-    order_id UUID REFERENCES orders(id) UNIQUE,
-    commission_cents INT,
+    order_id UUID REFERENCES orders(id),
+    amount INT,
+    status ENUM('pending','approved','paid') DEFAULT 'pending',
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -638,6 +699,18 @@ audit_log(
     meta JSONB,
     created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Analytics events tracking
+events(
+    id UUID PRIMARY KEY,
+    user_id UUID NULL REFERENCES users(id),
+    event_type TEXT NOT NULL, -- e.g. page_view, product_view, checkout_start, purchase_complete
+    payload JSONB,
+    ip_hash TEXT,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+-- idx(event_type, created_at), idx(user_id, created_at)
 ```
 
 ---
@@ -714,6 +787,50 @@ audit_log(
 - **PayHero**: M-Pesa integration for Kenya market
 - **Webhook Security**: signature verification and idempotency handling
 
+### Frontend Design System & Modern UI Guidelines
+
+This section prescribes the exact frontend stack, component strategy, and design system rules so the store looks modern, polished, and sells your assets — especially important since you sell UI content.
+
+#### Component & Design System Strategy
+
+- **Atomic Design**: atoms (button, input), molecules (search bar, product card), organisms (product grid, navbar), templates (PDP layout), pages
+- **Component Library**: private package published as npm package consumed by Next.js app and any marketing microsites. Include variants for Tailwind and plain CSS
+- **Design Tokens**: color palette, spacing, radii, font scale, shadow tokens in JSON + CSS variables for runtime theming (light/dark)
+- **Theming**: light/dark by default; theme keys driven by CSS variables and Tailwind config
+- **Accessibility**: components must include aria attributes, keyboard focus states, and high contrast modes
+- **Responsive & Mobile First**: breakpoint system in tokens, fluid typography (clamp)
+- **Documentation Site**: Storybook or custom docs site showcasing components and usage snippets — this doubles as marketing proof you sell useful UI
+
+#### Landing & Conversion UI Patterns (Must Convert)
+
+- **Hero**: clear value proposition, single primary CTA (Buy / Try Demo), trust badges (payments accepted, refund policy)
+- **Product Card**: screenshot (responsive), 1-line benefit, price, rating, small CTA
+- **PDP**: large demo iframe, features list, use cases, license badge, version dropdown, buy widget (price + license type), related products, FAQs, verified reviews
+- **Checkout**: minimal form fields, express pay buttons (Stripe/PayPal/M-Pesa), progress indicator, clear refund policy link
+- **Account**: downloads grid with thumbnails, license keys, re-download button, version changelog
+- **Blog**: content with inline CTAs, table of contents, code blocks with copy buttons, and related products panel
+
+#### Visual Language & Microcopy
+
+- Use neutral, professional colors with a bright accent for CTAs
+- Microcopy should reduce friction: "Download instantly", "No setup required", "Works offline"
+- Show example use cases and one-line snippet to show how quick integration is
+- Use high-quality screenshots and short GIF demos to show interaction (3–6s)
+
+#### Performance & SEO Considerations for Frontend
+
+- Pre-render product and key landing pages (SSG) with incremental revalidation
+- Use `<link rel=preload>` for hero images and critical fonts
+- Avoid heavy client JS for landing pages — hydrate demos only when visible
+- Optimize images via Cloudflare Images (AVIF/WebP variants)
+- Implement structured data for Product & Article on server render
+
+#### Developer DX & Reusability
+
+- Component stories + tests (visual regression via Chromatic or Percy)
+- Linting (ESLint), formatting (Prettier), TypeScript strict mode
+- Single source of truth for tokens; build script to export tokens to Tailwind config and CSS variables
+
 ---
 
 ## API Design
@@ -733,6 +850,8 @@ GET /products                    - List products with filtering
 GET /products/:slug              - Get product details
 GET /products/:slug/versions     - List product versions
 GET /products/:id/reviews        - Get approved reviews
+GET /bundles                     - List available bundles
+GET /bundles/:slug               - Get bundle details with included products
 ```
 
 #### Cart & Orders
@@ -774,6 +893,11 @@ GET /pages/:slug                - Get static page
 GET /admin/metrics              - Dashboard metrics
 GET /admin/sales                - Sales reporting
 GET /admin/top-products         - Top selling products
+POST /admin/bundles             - Create new bundle
+PUT /admin/bundles/:id          - Update bundle
+DELETE /admin/bundles/:id       - Delete bundle
+POST /admin/bundles/:id/items   - Add products to bundle
+DELETE /admin/bundles/:id/items/:product_id - Remove product from bundle
 ```
 
 #### Payment Webhooks
@@ -848,15 +972,20 @@ frame-ancestors 'none';
 
 ---
 
-## Project Plan & Roadmap
+## Phase 3 — Project Plan, Roadmap & Delivery Playbook
+**(No-Regrets Implementation Strategy)**
 
-### Delivery Strategy
-- **Methodology**: Iterative development with 2-week sprints
-- **Release Cadence**: Continuous staging deployment, weekly production releases
-- **Branch Strategy**: `main` (prod), `develop` (staging), feature branches `feat/*`
-- **Environments**: Development (local), Staging, Production with isolated databases
+**Objective**: Turn Phase 1–2 design into an executable plan with milestones, backlog, workflows, QA strategy, CI/CD, and checklists so implementation is predictable and regret-free. Optimized for a small team/solo dev working in iterations.
 
-### Milestones & Build Order
+### 1) Delivery Strategy at a Glance
+
+- **Methodology**: Iterative (2-week sprints or Kanban), milestone-driven
+- **Release Cadence**: Ship to Staging continuously; promote to Prod weekly or when release checklist passes
+- **Branch Strategy**: `main` (prod), `develop` (staging), feature branches `feat/*`, fix branches `fix/*`, release branches `release/*`. Protect `main` & `develop`
+- **Environments**: Dev (local), Staging, Production. Isolated Supabase DBs & Cloudflare R2 buckets per env. Separate analytics & email credentials per env
+- **Change Safety**: Feature flags, dark launches, canary releases, and database migrations with backward compatibility
+
+### 2) Milestones & Build Order
 
 #### M0 – Foundations (Weeks 1-2)
 **Exit Criteria**: Hello-world deploy to staging; login/logout works; CI pipeline green
@@ -916,28 +1045,196 @@ frame-ancestors 'none';
 - [ ] Bundle and discount system
 - [ ] Content velocity optimization
 
-### Work Breakdown Structure
+### 3) Backlog — Epics → User Stories (with Acceptance Criteria)
 
-| Week | Focus Area | Key Deliverables |
-|------|------------|------------------|
-| 1-2  | Foundation | Repo setup, auth skeleton, CI/CD |
-| 3-4  | Core Platform | Catalog API, CMS, basic frontend |
-| 5-6  | Commerce | Payment integration, order processing |
-| 7    | Fulfillment | License system, secure downloads |
-| 8    | Engagement | Reviews, affiliate system |
-| 9    | Performance | Demos, SEO optimization |
-| 10   | Analytics | Reporting dashboards |
-| 11   | Launch Prep | Final testing, documentation |
-| 12+  | Growth | A/B testing, feature expansion |
+#### EPIC A: Auth & Account
+**A1**: As a visitor, I can sign up with email/OAuth/passkey.
+- **AC**: Email verify + TOTP optional; device listed in account; session cookie httpOnly.
 
-### Risk Register & Mitigation
+**A2**: As a user, I can see and revoke active sessions.
+- **AC**: Revoked session cannot access protected routes (401); audit event stored.
 
-| Risk | Impact | Mitigation |
-|------|---------|------------|
-| Payments desync | High | Outbox pattern + periodic reconciliation job |
-| Download abuse | Medium | Strict TTL + per-license rate-limit + watermarking |
-| SEO volatility | Medium | Evergreen content + internal links + technical SEO checks |
-| Vendor lock-in | Low | Adapters for auth/payments; export scripts for DB/R2 |
+**A3**: As a user, I can manage profile & security (passkey/TOTP).
+- **AC**: Security level displayed; backup codes downloadable.
+
+#### EPIC B: Catalog
+**B1**: As a visitor, I can browse/search products by tags/category.
+- **AC**: Query, category, tag filters work; pagination; 200ms P95 response on Staging.
+
+**B2**: As an admin, I can create product + versions + assets.
+- **AC**: Unique slug enforced; version semver validated; preview renders correctly.
+
+**B3**: As a visitor, I can view and purchase bundles.
+- **AC**: Bundle pricing displayed; included products listed; bundle purchase creates individual licenses.
+
+#### EPIC C: CMS
+**C1**: As an editor, I can write rich posts with images & CTAs.
+- **AC**: Draft → publish workflow; OG image; canonical; ISR revalidate on publish.
+
+**C2**: As a visitor, I can read blog posts and discover related products.
+- **AC**: Related block present; schema.org Article present and valid.
+
+#### EPIC D: Checkout & Payments
+**D1**: As a buyer, I can pay via Stripe/PayPal/PayHero.
+- **AC**: Webhook confirms payment; order → paid; idempotency key prevents dupes.
+
+**D2**: As an admin, I see all orders/refunds.
+- **AC**: Filters by status/date/user; export CSV.
+
+#### EPIC E: Licensing & Downloads
+**E1**: As a buyer, I receive a license and can download my files anytime.
+- **AC**: Signed URL TTL ≤ 5 min; watermark JSON in zip; per-license rate-limit enforced.
+
+#### EPIC F: Reviews
+**F1**: As a verified buyer, I can submit a star rating + text.
+- **AC**: Only one review per user/product; moderation queue.
+
+#### EPIC G: Affiliates
+**G1**: As an affiliate, I get a unique link and see my clicks/conversions.
+- **AC**: 24h cookie default (configurable); commission calculated at webhook success.
+
+#### EPIC H: Demos & Playgrounds
+**H1**: As a visitor, I can try tools/components live.
+- **AC**: Iframe sandbox + strict CSP; copy-code works; sample data provided.
+
+#### EPIC I: Analytics & Reporting
+**I1**: As an admin, I see sales, funnel, and top-content dashboards.
+- **AC**: Data reconciles with provider reports; UTM mapped to orders.
+
+### 4) Engineering Workflow
+
+#### Issue Management
+- **Issue Templates**: Bug, Feature, Task, Spike (with Definition of Ready/Done sections)
+- **DoR (Definition of Ready)**: User story, ACs, design reference, data changes noted, flags/metrics defined
+- **DoD (Definition of Done)**: Tests pass, docs updated, migration applied, feature behind flag, monitoring added
+- **Code Review Checklist**: security (authz), performance, logging, errors with context, i18n, accessibility
+- **Commit Style**: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`), PRs reference issue IDs
+
+### 5) CI/CD Pipeline (per Environment)
+
+#### Pipeline Jobs
+**Jobs**: install → typecheck → lint → unit tests → integration tests (API) → build → e2e (staging) → deploy → smoke tests
+
+#### Security & Quality
+- **Secrets**: managed via env vault; never in repo. Rotated every 90 days
+- **Database Migrations**: forward-only, squashed per release, backward-compatible fields; automatic rollback scripts
+- **Preview Deploys**: every PR posts a preview URL + seeded DB
+- **Quality Gates**: coverage threshold (e.g., 70% rising), bundle size budget, Lighthouse CI (PWA off), Core Web Vitals synthetic
+
+### 6) Test Strategy
+
+- **Unit**: service logic, validators, formatters
+- **Integration**: API routes with DB (test schema)
+- **E2E**: critical flows (signup, buy, download) using seeded fixtures
+- **Security**: authz tests, CSRF, SSRF, RCE blocking in playground via CSP/sandbox
+- **Load**: checkout path at 95th percentile targets; webhook retry storm
+- **Accessibility**: axe checks; keyboard-only flows
+- **Browser Matrix**: Latest Chrome/Edge/Firefox; iOS Safari; Android Chrome
+
+### 7) Data & Content Operations
+
+#### Data Management
+- **Seeding**: baseline admin, sample products, demo posts, affiliates
+- **Backups**: daily Postgres snapshots; R2 lifecycle rules; restore drills quarterly
+- **Data Retention**: logs 90 days, PII minimal, DSR (export/delete) endpoints
+- **Content Governance**: editorial calendar, style guide, fact-check checklist, review/approval workflow
+
+### 8) SEO & Growth Plan (Execution)
+
+#### Content Strategy
+- **Content Calendar** (first 12 weeks): 2 posts/week across clusters: CSV/Excel utilities, text tools, UI components
+- **Programmatic Pages**: template for task-based landings (e.g., "Sort Alphabetically Online"), auto-link to relevant products + demos
+- **On-Page**: titles/meta/canonicals, schema.org Product/Article, FAQPage where useful
+- **Internal Links**: breadcrumbs, related posts/products, topic hubs
+- **Tracking**: UTM conventions; server-side event for checkout started/completed; affiliate mapping
+- **A/B Tests**: pricing, CTA text, hero layout, testimonials block order
+
+### 9) Security, Privacy & Compliance Plan
+
+#### Security Measures
+- **Checks**: dependency scanning, SCA, container image scans (if containers), secret leak detection
+- **Runtime Protections**: Cloudflare WAF rules, rate-limits per route, brute-force detection
+- **CSP**: default-src 'self'; frame-ancestors 'none'; sandbox demos; SRI on third-party scripts
+- **User Privacy**: Consent banner (essential vs analytics/ads), DPA with processors, opt-out for marketing emails
+
+### 10) Observability & Operations
+
+#### Monitoring
+- **Metrics**: requests, latency, error rate, queue depth, webhook success, signed-URL issuance, downloads
+- **Tracing/Logging**: request IDs, user IDs (hashed), webhook payload snapshots (sanitized)
+- **Alerts**: payment webhook failures, download spike anomalies, auth error spikes
+- **Runbooks**: payment outage, R2 outage, webhook backlog, schema rollback
+
+### 11) Release Management
+
+- **Versioning**: App releases YYYY.MM.minor; DB migrations tagged; product versions use SemVer
+- **Release Notes**: TL;DR + technical changelog + migrations + rollback steps
+- **Feature Flags**: documented owner, kill-switch, telemetry
+
+### 12) Risk Register (Live)
+
+| Risk | Impact | Probability | Mitigation |
+|------|---------|-------------|------------|
+| Payments desync | High | Medium | Outbox + periodic reconciliation job |
+| Download abuse | Medium | High | Strict TTL + per-license rate-limit + watermarking |
+| SEO volatility | Medium | Medium | Evergreen content + internal links + technical SEO checks in CI |
+| Vendor lock-in | Low | Low | Adapters for auth/payments; export scripts for DB/R2; ADRs |
+
+### 13) RACI (Even if Solo, Define Hats)
+
+- **Product/Scope**: You
+- **Tech Architecture**: You (review monthly)
+- **Security/Privacy**: You (quarterly audit)
+- **Content Lead**: You
+- **Support**: You
+
+**Tip**: Document decisions in ADRs per major choice (auth, payments, CMS editor).
+
+### 14) Work Breakdown Structure (Detailed)
+
+| Week | Focus Area | Key Deliverables | Exit Criteria |
+|------|------------|------------------|---------------|
+| 1-2  | Foundation | Repo setup, auth skeleton, CI/CD | Hello-world deployed, auth works |
+| 3-4  | Core Platform | Catalog API, CMS, basic frontend | Products and blog render from DB |
+| 5-6  | Commerce | Payment integration, order processing | End-to-end purchase flow works |
+| 7    | Fulfillment | License system, secure downloads | Downloads work with proper security |
+| 8    | Engagement | Reviews, affiliate system | Reviews show, affiliates track |
+| 9    | Performance | Demos, SEO optimization | Core Web Vitals green, demos secure |
+| 10   | Analytics | Reporting dashboards | Admin dashboards functional |
+| 11   | Launch Prep | Final testing, documentation | Production ready |
+| 12+  | Growth | A/B testing, feature expansion | First A/B test running |
+
+### 15) Checklists (Pin These!)
+
+#### Pre-Dev
+- [ ] Approve ERD/RFD; freeze v1 schema
+- [ ] Provision Supabase (Dev/Staging/Prod) + Cloudflare R2/Images buckets
+- [ ] Configure auth providers (OAuth, passkeys, TOTP)
+- [ ] Set up CI secrets vault and env files per environment
+
+#### Per Feature
+- [ ] Story has ACs + telemetry + flags
+- [ ] API contract documented; validation in place
+- [ ] DB migrations reviewed; backward compatible
+- [ ] Tests (unit/integration/e2e) written
+- [ ] Docs updated (user + admin)
+- [ ] Monitoring/alerts added
+
+#### Pre-Release (to Prod)
+- [ ] Lighthouse CI green; CWV synthetic green
+- [ ] No P0/P1 bugs open; error budget healthy
+- [ ] Backups verified; rollback plan documented
+- [ ] Legal pages live; pricing reflects reality; emails pass DMARC/SPF/DKIM
+- [ ] Runbooks linked; on-call contact defined (you!)
+
+### 16) Documentation Map
+
+- **README** (setup, run, deploy)
+- **/docs/adr/** (architecture decisions)
+- **/docs/api/** (OpenAPI)
+- **/docs/runbooks/**
+- **/docs/security/**
+- **/docs/content-style.md**
 
 ---
 

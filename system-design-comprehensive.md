@@ -40,16 +40,15 @@ flowchart LR
     User[Buyer / Visitor]
     Affiliate[Affiliate]
     Admin[Admin]
-    Pay[Payment Providers\n(Stripe, PayPal, PayHero/M‑Pesa)]
-    CF[(Cloudflare\nR2 + Images + CDN)]
+    Pay[Payment Providers<br/>(Stripe, PayPal, PayHero/M-Pesa)]
+    CF[(Cloudflare<br/>R2 + Images + CDN)]
     SEO[Search Engines]
     
     subgraph Platform
         FE[Next.js Frontend (SSG/ISR)]
-        API[Backend API (Auth, Catalog, Orders, Reviews, Affiliates)]
-        CMS[CMS Module\n(Blog & Static Pages)]
+        API[Backend API (Auth, Catalog, Orders, CMS, Reviews, Affiliates)]
         DB[(Postgres / Supabase)]
-        Auth[Auth Service\n(Supabase Auth Adapter)]
+        Auth[Auth Service<br/>(Supabase Auth Adapter)]
         Queue[Jobs/Queue]
         Email[Email Service]
         Analytics[Server Events]
@@ -57,18 +56,14 @@ flowchart LR
     
     User <--> FE
     FE <--> API
-    FE <--> CMS
     API <--> DB
-    CMS <--> DB
     API --> Auth
     API <--> CF
-    CMS <--> CF
     API <--> Pay
     API --> Email
     FE --> SEO
     Affiliate --> FE
     Admin <--> FE
-    Admin <--> CMS
     API --> Queue
     FE --> Analytics
 ```
@@ -157,7 +152,7 @@ sequenceDiagram
     Pay-->>FE: Redirect to hosted checkout / payment UI
     U->>Pay: Complete payment
     Pay-->>API: Webhook: payment_succeeded
-    API->>DB: Mark order paid; create License + Entitlements
+    API->>DB: Mark order paid; create License and Entitlements
     API->>R2: Generate signed download URL (short TTL)
     API->>U: Email receipt + downloads; FE shows Order Complete
     U->>FE: Click Download
@@ -257,7 +252,8 @@ erDiagram
     USER ||--o{ BLOGPOST : authors
     
     AFFILIATE ||--o{ AFFILIATE_CLICK : receives
-    AFFILIATE ||--o{ COMMISSION : earns
+    AFFILIATE ||--o{ AFFILIATE_CONVERSION : earns
+    AFFILIATE ||--o{ COMMISSION : has
     AFFILIATE ||--o{ PAYOUT : paid
     
     PRODUCT ||--o{ PRODUCT_VERSION : has
@@ -273,9 +269,12 @@ erDiagram
     TAG ||--o{ POST_TAG : joins
     
     ORDER ||--o{ ORDER_ITEM : contains
-    ORDER ||--o{ COMMISSION : attributed
+    ORDER ||--o{ AFFILIATE_CONVERSION : attributed
     ORDER_ITEM }o--|| PRODUCT_VERSION : references
     ORDER_ITEM }o--|| BUNDLE : may_reference
+    
+    AFFILIATE_CONVERSION }o--|| AFFILIATE : belongs_to
+    AFFILIATE_CONVERSION }o--|| ORDER : derived_from
     
     LICENSE }o--|| PRODUCT_VERSION : entitles
     DOWNLOAD_LINK }o--|| LICENSE : for
@@ -325,11 +324,13 @@ erDiagram
 #### 1. Users & Authentication
 
 ```sql
--- Users table
+-- Users table  
 users(
-    id UUID PRIMARY KEY,
+    id UUID PRIMARY KEY, -- user_id as specified in instructions
     email TEXT UNIQUE NOT NULL,
-    display_name TEXT,
+    name TEXT, -- Instructions specify 'name' not 'display_name'
+    password_hash TEXT, -- Instructions specify password_hash field
+    role ENUM('admin','affiliate','customer') DEFAULT 'customer', -- Instructions specify role field
     is_email_verified BOOLEAN DEFAULT FALSE,
     preferred_locale TEXT NULL,
     avatar_image_id UUID,
@@ -603,6 +604,15 @@ affiliate_clicks(
     utm_params JSONB NULL
 );
 -- idx(affiliate_id, click_ts)
+
+-- Affiliate conversions (tracking)
+affiliate_conversions(
+    id UUID PRIMARY KEY,
+    affiliate_id UUID REFERENCES affiliates(id),
+    order_id UUID REFERENCES orders(id) UNIQUE,
+    commission_cents INT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
 
 -- Commission tracking
 commissions(

@@ -26,11 +26,11 @@ This document breaks down the entire system from `system-design-comprehensive.md
   - [✓] Note down Project URL
   - [✓] Note down Anon Key
   - [✓] Note down Service Role Key
-- [ ] Create Cloudflare account
-  - [ ] Set up R2 storage buckets:
-    - [ ] Development bucket
-    - [ ] Staging bucket
-    - [ ] Production bucket
+- [✓] Create Cloudflare account
+  - [✓] Set up R2 storage buckets:
+    - [✓] Development bucket
+    - [✓] Staging bucket
+    - [✓] Production bucket
   - [ ] Configure Cloudflare Images
   - [ ] Set up API tokens for R2 access
 - [ ] Create payment provider accounts:

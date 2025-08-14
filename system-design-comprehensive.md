@@ -198,7 +198,7 @@ sequenceDiagram
 sequenceDiagram
   participant U as "User"
   participant FE as "Frontend"
-  participant AUTH as "Auth Provider (Supabase)"
+  participant AUTH as "Auth Provider"
   participant API as "Backend"
   participant DB as "Postgres"
 
@@ -1224,7 +1224,7 @@ flowchart LR
     Frontend[Next.js Frontend / SPA]
     API[Backend API Services]
     DB[(Primary Postgres DB)]
-    Auth[Auth Provider (Supabase/Auth Adapter)]
+    Auth["Auth Provider (Supabase/Auth Adapter)"]
     Queue[Job Queue / Workers]
   end
 
@@ -1260,7 +1260,7 @@ flowchart LR
   PaymentProvider --> Webhook["Payment Webhook → API"]
   Webhook --> OrderDB[(Orders, Payments)]
   Webhook --> License[License Issuance & Download Tokens]
-  License --> CloudR2[Cloudflare R2 (files)]
+  License --> CloudR2["Cloudflare R2 (files)"]
   User --> Account[User Account / Downloads Vault]
   Admin --> AdminConsole[Admin: CRUD Content & Products]
   AdminConsole --> CatalogDB

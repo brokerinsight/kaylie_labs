@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products - HTML Tools Store</title>
+    <meta name="description" content="Browse our collection of premium HTML tools, UI components, templates, and developer utilities. Instant downloads with lifetime updates.">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/products.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation (Same as index) -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <a href="index.html">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                            <rect width="32" height="32" rx="6" fill="#6366F1"/>
+                            <path d="M8 12L16 8L24 12V20L16 24L8 20V12Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                            <path d="M16 8V16M8 12L16 16L24 12" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                        </svg>
+                        <span>HTML Tools Store</span>
+                    </a>
+                </div>
+                <div class="nav-menu">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="products.html" class="nav-link active">Products</a>
+                    <a href="about.html" class="nav-link">About</a>
+                    <a href="contact.html" class="nav-link">Contact</a>
+                    <a href="#" class="btn btn-primary">Sign In</a>
+                </div>
+                <button class="mobile-menu-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header">
+        <div class="container">
+            <h1>Our Products</h1>
+            <p>Discover premium HTML tools and components crafted for modern web development</p>
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section class="products-section">
+        <div class="container">
+            <div class="products-layout">
+                <!-- Sidebar Filters -->
+                <aside class="filters-sidebar">
+                    <div class="filter-section">
+                        <h3>Categories</h3>
+                        <div class="filter-list">
+                            <label class="filter-item">
+                                <input type="checkbox" checked>
+                                <span>All Products (124)</span>
+                            </label>
+                            <label class="filter-item">
+                                <input type="checkbox">
+                                <span>UI Components (45)</span>
+                            </label>
+                            <label class="filter-item">
+                                <input type="checkbox">
+                                <span>Templates (32)</span>
+                            </label>
+                            <label class="filter-item">
+                                <input type="checkbox">
+                                <span>Tools & Utilities (28)</span>
+                            </label>
+                            <label class="filter-item">
+                                <input type="checkbox">
+                                <span>Icon Sets (12)</span>
+                            </label>
+                            <label class="filter-item">
+                                <input type="checkbox">
+                                <span>Form Elements (7)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <h3>Price Range</h3>
+                        <div class="filter-list">
+                            <label class="filter-item">
+                                <input type="radio" name="price" checked>
+                                <span>All Prices</span>
+                            </label>
+                            <label class="filter-item">
+                                <input type="radio" name="price">
+                                <span>Under $50</span>
+                            </label>
+                            <label class="filter-item">
+                                <input type="radio" name="price">
+                                <span>$50 - $100</span>
+                            </label>
+                            <label class="filter-item">
+                                <input type="radio" name="price">
+                                <span>Over $100</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <h3>Compatibility</h3>
+                        <div class="filter-list">
+                            <label class="filter-item">
+                                <input type="checkbox">
+                                <span>React</span>
+                            </label>
+                            <label class="filter-item">
+                                <input type="checkbox">
+                                <span>Vue.js</span>
+                            </label>
+                            <label class="filter-item">
+                                <input type="checkbox">
+                                <span>Vanilla JS</span>
+                            </label>
+                            <label class="filter-item">
+                                <input type="checkbox">
+                                <span>Bootstrap</span>
+                            </label>
+                            <label class="filter-item">
+                                <input type="checkbox">
+                                <span>Tailwind CSS</span>
+                            </label>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Products Grid -->
+                <div class="products-content">
+                    <div class="products-header">
+                        <p class="results-count">Showing 124 products</p>
+                        <select class="sort-select">
+                            <option>Most Popular</option>
+                            <option>Newest First</option>
+                            <option>Price: Low to High</option>
+                            <option>Price: High to Low</option>
+                            <option>Best Rated</option>
+                        </select>
+                    </div>
+
+                    <div class="products-grid">
+                        <!-- Product 1 -->
+                        <div class="product-card">
+                            <div class="product-badge">Best Seller</div>
+                            <div class="product-image">
+                                <div class="product-preview" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                    <span class="preview-text">Dashboard UI Kit</span>
+                                </div>
+                            </div>
+                            <div class="product-content">
+                                <h3>Dashboard UI Kit Pro</h3>
+                                <p>Complete admin dashboard with 50+ components, charts, tables, and forms.</p>
+                                <div class="product-tags">
+                                    <span class="tag">React</span>
+                                    <span class="tag">Tailwind</span>
+                                </div>
+                                <div class="product-meta">
+                                    <div class="rating">
+                                        <span class="stars">★★★★★</span>
+                                        <span>(127)</span>
+                                    </div>
+                                    <div class="price">$79</div>
+                                </div>
+                                <button class="btn btn-primary btn-block">View Details</button>
+                            </div>
+                        </div>
+
+                        <!-- Product 2 -->
+                        <div class="product-card">
+                            <div class="product-badge new">New</div>
+                            <div class="product-image">
+                                <div class="product-preview" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                    <span class="preview-text">Form Builder</span>
+                                </div>
+                            </div>
+                            <div class="product-content">
+                                <h3>Advanced Form Builder</h3>
+                                <p>Multi-step forms, validation, file uploads, and dynamic field generation.</p>
+                                <div class="product-tags">
+                                    <span class="tag">Vue.js</span>
+                                    <span class="tag">Bootstrap</span>
+                                </div>
+                                <div class="product-meta">
+                                    <div class="rating">
+                                        <span class="stars">★★★★★</span>
+                                        <span>(89)</span>
+                                    </div>
+                                    <div class="price">$49</div>
+                                </div>
+                                <button class="btn btn-primary btn-block">View Details</button>
+                            </div>
+                        </div>
+
+                        <!-- Product 3 -->
+                        <div class="product-card">
+                            <div class="product-image">
+                                <div class="product-preview" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                                    <span class="preview-text">Landing Pages</span>
+                                </div>
+                            </div>
+                            <div class="product-content">
+                                <h3>Landing Page Bundle</h3>
+                                <p>10+ stunning landing page templates for SaaS, products, and services.</p>
+                                <div class="product-tags">
+                                    <span class="tag">HTML</span>
+                                    <span class="tag">CSS</span>
+                                </div>
+                                <div class="product-meta">
+                                    <div class="rating">
+                                        <span class="stars">★★★★☆</span>
+                                        <span>(156)</span>
+                                    </div>
+                                    <div class="price">$99</div>
+                                </div>
+                                <button class="btn btn-primary btn-block">View Details</button>
+                            </div>
+                        </div>
+
+                        <!-- Product 4 -->
+                        <div class="product-card">
+                            <div class="product-image">
+                                <div class="product-preview" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                                    <span class="preview-text">E-commerce Kit</span>
+                                </div>
+                            </div>
+                            <div class="product-content">
+                                <h3>E-commerce UI Kit</h3>
+                                <p>Complete online store components with cart, checkout, and product pages.</p>
+                                <div class="product-tags">
+                                    <span class="tag">React</span>
+                                    <span class="tag">Next.js</span>
+                                </div>
+                                <div class="product-meta">
+                                    <div class="rating">
+                                        <span class="stars">★★★★★</span>
+                                        <span>(203)</span>
+                                    </div>
+                                    <div class="price">$119</div>
+                                </div>
+                                <button class="btn btn-primary btn-block">View Details</button>
+                            </div>
+                        </div>
+
+                        <!-- Product 5 -->
+                        <div class="product-card">
+                            <div class="product-badge">Popular</div>
+                            <div class="product-image">
+                                <div class="product-preview" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+                                    <span class="preview-text">Icon Pack</span>
+                                </div>
+                            </div>
+                            <div class="product-content">
+                                <h3>Premium Icon Set</h3>
+                                <p>2000+ carefully crafted icons in multiple formats and styles.</p>
+                                <div class="product-tags">
+                                    <span class="tag">SVG</span>
+                                    <span class="tag">Figma</span>
+                                </div>
+                                <div class="product-meta">
+                                    <div class="rating">
+                                        <span class="stars">★★★★★</span>
+                                        <span>(178)</span>
+                                    </div>
+                                    <div class="price">$39</div>
+                                </div>
+                                <button class="btn btn-primary btn-block">View Details</button>
+                            </div>
+                        </div>
+
+                        <!-- Product 6 -->
+                        <div class="product-card">
+                            <div class="product-image">
+                                <div class="product-preview" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);">
+                                    <span class="preview-text">Chart Library</span>
+                                </div>
+                            </div>
+                            <div class="product-content">
+                                <h3>Data Visualization Kit</h3>
+                                <p>Beautiful charts and graphs with interactive features and animations.</p>
+                                <div class="product-tags">
+                                    <span class="tag">D3.js</span>
+                                    <span class="tag">Chart.js</span>
+                                </div>
+                                <div class="product-meta">
+                                    <div class="rating">
+                                        <span class="stars">★★★★☆</span>
+                                        <span>(92)</span>
+                                    </div>
+                                    <div class="price">$69</div>
+                                </div>
+                                <button class="btn btn-primary btn-block">View Details</button>
+                            </div>
+                        </div>
+
+                        <!-- Product 7 -->
+                        <div class="product-card">
+                            <div class="product-badge new">New</div>
+                            <div class="product-image">
+                                <div class="product-preview" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);">
+                                    <span class="preview-text">Mobile UI</span>
+                                </div>
+                            </div>
+                            <div class="product-content">
+                                <h3>Mobile App Components</h3>
+                                <p>Responsive mobile-first components for progressive web apps.</p>
+                                <div class="product-tags">
+                                    <span class="tag">PWA</span>
+                                    <span class="tag">Mobile</span>
+                                </div>
+                                <div class="product-meta">
+                                    <div class="rating">
+                                        <span class="stars">★★★★★</span>
+                                        <span>(45)</span>
+                                    </div>
+                                    <div class="price">$89</div>
+                                </div>
+                                <button class="btn btn-primary btn-block">View Details</button>
+                            </div>
+                        </div>
+
+                        <!-- Product 8 -->
+                        <div class="product-card">
+                            <div class="product-image">
+                                <div class="product-preview" style="background: linear-gradient(135deg, #c1dfc4 0%, #deecdd 100%);">
+                                    <span class="preview-text">Auth Templates</span>
+                                </div>
+                            </div>
+                            <div class="product-content">
+                                <h3>Authentication Pack</h3>
+                                <p>Login, register, password reset, and 2FA templates with validation.</p>
+                                <div class="product-tags">
+                                    <span class="tag">Auth</span>
+                                    <span class="tag">Forms</span>
+                                </div>
+                                <div class="product-meta">
+                                    <div class="rating">
+                                        <span class="stars">★★★★★</span>
+                                        <span>(112)</span>
+                                    </div>
+                                    <div class="price">$29</div>
+                                </div>
+                                <button class="btn btn-primary btn-block">View Details</button>
+                            </div>
+                        </div>
+
+                        <!-- Product 9 -->
+                        <div class="product-card">
+                            <div class="product-image">
+                                <div class="product-preview" style="background: linear-gradient(135deg, #0ba360 0%, #3cba92 100%);">
+                                    <span class="preview-text">Utility Tools</span>
+                                </div>
+                            </div>
+                            <div class="product-content">
+                                <h3>Developer Utilities</h3>
+                                <p>Code snippets, helpers, and productivity tools for faster development.</p>
+                                <div class="product-tags">
+                                    <span class="tag">Tools</span>
+                                    <span class="tag">Utils</span>
+                                </div>
+                                <div class="product-meta">
+                                    <div class="rating">
+                                        <span class="stars">★★★★☆</span>
+                                        <span>(67)</span>
+                                    </div>
+                                    <div class="price">$45</div>
+                                </div>
+                                <button class="btn btn-primary btn-block">View Details</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination">
+                        <button class="pagination-btn" disabled>Previous</button>
+                        <button class="pagination-number active">1</button>
+                        <button class="pagination-number">2</button>
+                        <button class="pagination-number">3</button>
+                        <span class="pagination-dots">...</span>
+                        <button class="pagination-number">14</button>
+                        <button class="pagination-btn">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter Section -->
+    <section class="newsletter-section">
+        <div class="container">
+            <div class="newsletter-content">
+                <h2>Stay Updated</h2>
+                <p>Get notified about new products and exclusive offers</p>
+                <form class="newsletter-form">
+                    <input type="email" placeholder="Enter your email" required>
+                    <button type="submit" class="btn btn-primary">Subscribe</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer (Same as index) -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                            <rect width="32" height="32" rx="6" fill="#6366F1"/>
+                            <path d="M8 12L16 8L24 12V20L16 24L8 20V12Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                            <path d="M16 8V16M8 12L16 16L24 12" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                        </svg>
+                        <span>HTML Tools Store</span>
+                    </div>
+                    <p>Premium HTML/CSS/JS tools and components for modern web development.</p>
+                    <div class="social-links">
+                        <a href="#" aria-label="Twitter">𝕏</a>
+                        <a href="#" aria-label="GitHub">⚡</a>
+                        <a href="#" aria-label="Discord">💬</a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Products</h4>
+                    <ul>
+                        <li><a href="#">UI Components</a></li>
+                        <li><a href="#">Templates</a></li>
+                        <li><a href="#">Tools & Utilities</a></li>
+                        <li><a href="#">Icon Sets</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Careers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">FAQ</a></li>
+                        <li><a href="#">Support Center</a></li>
+                        <li><a href="#">License Info</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="terms.html">Terms of Service</a></li>
+                        <li><a href="#">Refund Policy</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 HTML Tools Store. All rights reserved.</p>
+                <div class="payment-methods">
+                    <span>Accepted Payments:</span>
+                    <span class="payment-icon">💳</span>
+                    <span class="payment-icon">📱</span>
+                    <span class="payment-icon">🅿️</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

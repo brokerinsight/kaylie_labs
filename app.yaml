@@ -1,0 +1,14 @@
+name: html-tools-store
+region: nyc
+static_sites:
+- build_command: ""
+  environment_slug: html
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: YOUR_GITHUB_USERNAME/YOUR_REPO_NAME
+  name: html-tools-store
+  source_dir: html-tools-store
+  output_dir: html-tools-store
+  routes:
+  - path: /

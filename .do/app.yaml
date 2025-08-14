@@ -1,0 +1,9 @@
+name: html-tools-store
+region: nyc
+static_sites:
+- environment_slug: html
+  github:
+    branch: main
+    deploy_on_push: true
+  name: html-tools-store
+  source_dir: /html-tools-store

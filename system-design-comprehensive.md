@@ -207,10 +207,10 @@ sequenceDiagram
   AUTH-->>FE: Auth tokens (access + refresh)
   FE->>API: Exchange token for secure httpOnly cookie / session
   API->>DB: Upsert user row and create session row (device info)
-  API-->>FE: Session cookie set; return user profile
+  API-->>FE: Session cookie set, return user profile
   U->>FE: Perform protected action (download)
-  FE->>API: Uses cookie; API validates session vs DB
-  API->>DB: Session fresh check; enforce MFA requirement for critical ops
+  FE->>API: Uses cookie, API validates session vs DB
+  API->>DB: Session fresh check, enforce MFA requirement for critical ops
   API-->>FE: proceed / deny
 ```
 

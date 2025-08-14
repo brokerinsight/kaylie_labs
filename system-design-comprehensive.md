@@ -167,12 +167,12 @@ flowchart LR
 
 ```mermaid
 sequenceDiagram
-    participant U as User
-    participant FE as Frontend
-    participant API as Backend API
-    participant Pay as Payment Provider
-    participant DB as Postgres
-    participant R2 as Cloudflare R2
+    participant U as "User"
+    participant FE as "Frontend"
+    participant API as "Backend API"
+    participant Pay as "Payment Provider"
+    participant DB as "Postgres"
+    participant R2 as "Cloudflare R2"
     
     U->>FE: Click Buy Now (with optional affiliate cookie)
     FE->>API: POST /orders (cart, prices, affiliate_id?)
@@ -196,17 +196,17 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-  participant U as User
-  participant FE as Frontend
-  participant AUTH as Auth Provider (Supabase)
-  participant API as Backend
-  participant DB as Postgres
+  participant U as "User"
+  participant FE as "Frontend"
+  participant AUTH as "Auth Provider (Supabase)"
+  participant API as "Backend"
+  participant DB as "Postgres"
 
   U->>FE: Sign up / Sign in (email / oauth / passkey)
   FE->>AUTH: Start auth flow (magic link / oauth / passkey)
   AUTH-->>FE: Auth tokens (access + refresh)
   FE->>API: Exchange token for secure httpOnly cookie / session
-  API->>DB: Upsert user row; create session row (device info)
+  API->>DB: Upsert user row and create session row (device info)
   API-->>FE: Session cookie set; return user profile
   U->>FE: Perform protected action (download)
   FE->>API: Uses cookie; API validates session vs DB
@@ -218,13 +218,13 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-  participant Editor as Editor/Admin
-  participant CMSFE as Admin Frontend
-  participant API as Backend CMS Service
-  participant DB as Postgres
-  participant CF as Cloudflare (Images & Cache)
-  participant FE as Public Frontend
-  participant SearchEngine as Indexer (Search Engine / Search Service)
+  participant Editor as "Editor/Admin"
+  participant CMSFE as "Admin Frontend"
+  participant API as "Backend CMS Service"
+  participant DB as "Postgres"
+  participant CF as "Cloudflare (Images & Cache)"
+  participant FE as "Public Frontend"
+  participant SearchEngine as "Indexer (Search Engine / Search Service)"
 
   Editor->>CMSFE: Create / edit blog post or page
   CMSFE->>API: POST /admin/posts (body_rich JSON, assets references)
@@ -1214,7 +1214,7 @@ flowchart LR
   User[Registered User]
   Admin[Admin]
   Affiliate[Affiliate]
-  Payment[Payment Gateways\n(Stripe/PayHero/PayPal/M-Pesa)]
+  Payment["Payment Gateways<br/>(Stripe/PayHero/PayPal/M-Pesa)"]
   Cloud[Cloudflare R2 & Images]
   Email[Email Service]
   SearchEngine[Search Engines / Crawlers]
@@ -1253,11 +1253,11 @@ flowchart LR
   Visitor --> Browse[Browse Catalog & Blog]
   Browse --> CatalogDB[(Products, Posts in DB)]
   Visitor --> Preview[Interactive Demo / Playground]
-  Preview --> Sandbox[Sandbox Worker (iframe)]
+  Preview --> Sandbox["Sandbox Worker (iframe)"]
   Visitor --> Cart[Add to Cart]
   Cart --> Checkout[Checkout & Payment]
   Checkout --> PaymentProvider[Payment Gateways]
-  PaymentProvider --> Webhook[Payment Webhook -> API]
+  PaymentProvider --> Webhook["Payment Webhook → API"]
   Webhook --> OrderDB[(Orders, Payments)]
   Webhook --> License[License Issuance & Download Tokens]
   License --> CloudR2[Cloudflare R2 (files)]
@@ -1271,15 +1271,15 @@ flowchart LR
 DFD — Level 2 (Checkout → Payment → Download — critical path)
 ```mermaid
 sequenceDiagram
-  participant V as Visitor
-  participant FE as Frontend
-  participant API as Backend
-  participant PAY as Payment Gateway
-  participant DB as Postgres
-  participant R2 as Cloudflare R2
-  participant EMAIL as Email Service
+  participant V as "Visitor"
+  participant FE as "Frontend"
+  participant API as "Backend"
+  participant PAY as "Payment Gateway"
+  participant DB as "Postgres"
+  participant R2 as "Cloudflare R2"
+  participant EMAIL as "Email Service"
 
-  V->>FE: Click "Buy" (cart -> checkout)
+  V->>FE: Click "Buy" (cart → checkout)
   FE->>API: POST /orders (cart items, affiliate_code?)
   API->>DB: Create order (status: pending)
   API->>PAY: Create payment intent / start payment

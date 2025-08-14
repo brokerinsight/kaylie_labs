@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - Kaylie Labs</title>
+    <meta name="description" content="Get in touch with Kaylie Labs. We're here to help with your questions about our HTML tools and UI components.">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/pages.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <div class="logo">
+                    <a href="index.html">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                            <rect width="32" height="32" rx="6" fill="#6366F1"/>
+                            <path d="M8 12L16 8L24 12V20L16 24L8 20V12Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                            <path d="M16 8V16M8 12L16 16L24 12" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Kaylie Labs</span>
+                    </a>
+                </div>
+                <div class="nav-menu">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="products.html" class="nav-link">Products</a>
+                    <a href="about.html" class="nav-link">About</a>
+                    <a href="contact.html" class="nav-link active">Contact</a>
+                    <a href="coming-soon.html" class="btn btn-primary">Sign In</a>
+                </div>
+                <button class="mobile-menu-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header">
+        <div class="container">
+            <h1>Contact Us</h1>
+            <p>We'd love to hear from you. Let's start a conversation.</p>
+        </div>
+    </section>
+
+    <!-- Contact Content -->
+    <section class="contact-content">
+        <div class="container">
+            <div class="contact-layout">
+                <!-- Contact Form -->
+                <div class="contact-form-section">
+                    <h2>Send us a Message</h2>
+                    <p>Fill out the form below and we'll get back to you within 24 hours.</p>
+                    
+                    <form class="contact-form" id="contactForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="firstName">First Name</label>
+                                <input type="text" id="firstName" name="firstName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName">Last Name</label>
+                                <input type="text" id="lastName" name="lastName" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="company">Company (Optional)</label>
+                            <input type="text" id="company" name="company">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="subject">Subject</label>
+                            <select id="subject" name="subject" required>
+                                <option value="">Select a subject</option>
+                                <option value="general">General Inquiry</option>
+                                <option value="support">Technical Support</option>
+                                <option value="sales">Sales Question</option>
+                                <option value="partnership">Partnership Opportunity</option>
+                                <option value="feedback">Feedback</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="message">Message</label>
+                            <textarea id="message" name="message" rows="6" required></textarea>
+                        </div>
+                        
+                        <div class="form-group checkbox-group">
+                            <label>
+                                <input type="checkbox" name="newsletter" id="newsletter">
+                                <span>I'd like to receive updates about new products and offers</span>
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg">Send Message</button>
+                    </form>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="contact-info-section">
+                    <div class="contact-card">
+                        <h3>Get in Touch</h3>
+                        <p>Have questions? We're here to help and would love to hear from you.</p>
+                        
+                        <div class="contact-methods">
+                            <div class="contact-method">
+                                <div class="contact-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                        <path d="M3 8L12 13L21 8M5 19H19C20.1046 19 21 18.1046 21 17V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V17C3 18.1046 3.89543 19 5 19Z" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                                <div class="contact-details">
+                                    <h4>Email Us</h4>
+                                    <p>General Inquiries:<br><a href="mailto:info@kaylielabs.store">info@kaylielabs.store</a></p>
+                                    <p>Support:<br><a href="mailto:support@kaylielabs.store">support@kaylielabs.store</a></p>
+                                </div>
+                            </div>
+                            
+                            <div class="contact-method">
+                                <div class="contact-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 6C13.1 6 14 6.9 14 8C14 9.1 13.1 10 12 10C10.9 10 10 9.1 10 8C10 6.9 10.9 6 12 6ZM15 16H9V14H11V11H10V9H13V14H15V16Z" fill="#6366F1"/>
+                                    </svg>
+                                </div>
+                                <div class="contact-details">
+                                    <h4>Support Hours</h4>
+                                    <p>Monday - Friday<br>9:00 AM - 6:00 PM EAT</p>
+                                    <p>Average response time: 2 hours</p>
+                                </div>
+                            </div>
+                            
+                            <div class="contact-method">
+                                <div class="contact-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                        <path d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 5.02944 7.02944 1 12 1C16.9706 1 21 5.02944 21 10Z" stroke="#6366F1" stroke-width="2"/>
+                                        <circle cx="12" cy="10" r="3" stroke="#6366F1" stroke-width="2"/>
+                                    </svg>
+                                </div>
+                                <div class="contact-details">
+                                    <h4>Office Location</h4>
+                                    <p>Nairobi, Kenya<br>East Africa</p>
+                                    <p>Remote-first company</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ Section -->
+                    <div class="contact-card">
+                        <h3>Frequently Asked Questions</h3>
+                        <div class="faq-list">
+                            <div class="faq-item">
+                                <h4>How do I purchase a product?</h4>
+                                <p>Simply browse our products, add items to your cart, and proceed to checkout. We accept multiple payment methods including cards and M-Pesa.</p>
+                            </div>
+                            <div class="faq-item">
+                                <h4>Do you offer refunds?</h4>
+                                <p>Yes, we offer a 30-day money-back guarantee on all products. If you're not satisfied, contact us for a full refund.</p>
+                            </div>
+                            <div class="faq-item">
+                                <h4>Can I use products for client projects?</h4>
+                                <p>Yes! Our commercial licenses allow you to use products in unlimited client projects.</p>
+                            </div>
+                            <div class="faq-item">
+                                <h4>Do you provide support?</h4>
+                                <p>Absolutely! We offer email support for all customers and priority support for commercial license holders.</p>
+                            </div>
+                        </div>
+                        <a href="coming-soon.html" class="btn btn-secondary">View All FAQs →</a>
+                    </div>
+
+                    <!-- Social Links -->
+                    <div class="contact-card">
+                        <h3>Connect With Us</h3>
+                        <p>Follow us on social media for updates, tips, and community discussions.</p>
+                        <div class="social-buttons">
+                            <a href="#" class="social-button">
+                                <span>𝕏</span>
+                                <span>Twitter</span>
+                            </a>
+                            <a href="#" class="social-button">
+                                <span>⚡</span>
+                                <span>GitHub</span>
+                            </a>
+                            <a href="#" class="social-button">
+                                <span>💬</span>
+                                <span>Discord</span>
+                            </a>
+                            <a href="#" class="social-button">
+                                <span>💼</span>
+                                <span>LinkedIn</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Map Section -->
+    <section class="map-section">
+        <div class="container">
+            <div class="map-placeholder">
+                <div class="map-overlay">
+                    <h3>Find Us Here</h3>
+                    <p>Nairobi, Kenya • Remote-First Company</p>
+                    <p>Serving developers worldwide</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                            <rect width="32" height="32" rx="6" fill="#6366F1"/>
+                            <path d="M8 12L16 8L24 12V20L16 24L8 20V12Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                            <path d="M16 8V16M8 12L16 16L24 12" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Kaylie Labs</span>
+                    </div>
+                    <p>Premium HTML/CSS/JS tools and components for modern web development.</p>
+                    <div class="social-links">
+                        <a href="#" aria-label="Twitter">𝕏</a>
+                        <a href="#" aria-label="GitHub">⚡</a>
+                        <a href="#" aria-label="Discord">💬</a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Products</h4>
+                    <ul>
+                        <li><a href="products.html">UI Components</a></li>
+                        <li><a href="products.html">Templates</a></li>
+                        <li><a href="products.html">Tools & Utilities</a></li>
+                        <li><a href="products.html">Icon Sets</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                        <li><a href="coming-soon.html">Blog</a></li>
+                        <li><a href="coming-soon.html">Careers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="coming-soon.html">Documentation</a></li>
+                        <li><a href="coming-soon.html">FAQ</a></li>
+                        <li><a href="coming-soon.html">Support Center</a></li>
+                        <li><a href="coming-soon.html">License Info</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="terms.html">Terms of Service</a></li>
+                        <li><a href="coming-soon.html">Refund Policy</a></li>
+                        <li><a href="coming-soon.html">Cookie Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Kaylie Labs. All rights reserved.</p>
+                <div class="payment-methods">
+                    <span>Accepted Payments:</span>
+                    <span class="payment-icon">💳</span>
+                    <span class="payment-icon">📱</span>
+                    <span class="payment-icon">🅿️</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

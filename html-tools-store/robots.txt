@@ -1,0 +1,13 @@
+# Robots.txt for Kaylie Labs
+# https://kaylielabs.store
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://kaylielabs.store/sitemap.xml
+
+# Contact
+# Email: support@kaylielabs.store
